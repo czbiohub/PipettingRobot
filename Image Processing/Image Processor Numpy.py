@@ -2,11 +2,11 @@ from PIL import Image
 import glob
 import pyqtgraph as pg
 import numpy as np
-
-images = glob.glob('./images/Testing_Images/*.jpg') #Get full path of image folder
+uin = str
+images = glob.glob(input('Please enter full path to folder containing captured images: ') + '/*.jpg') #Get full path of images in folder
 
 def Average(array):
-    return np.mean(array, axis=2) #dimensions should be tuple of axis to average
+    return np.mean(array) #dimensions should be tuple of axis to average
 
 def Flatten(list_of_lists):
     flattened_list = []
@@ -26,20 +26,24 @@ def Split_channels(imgarray):
     return imgB, imgG, imgR
 
 def Process():
+    average_values = []
+    timestamps = []
     for image in sorted(images):
         with open(image, 'rb') as file:
             imgfull = Image.open(file)
             ndimg = np.array(imgfull) #open as ndarray
-            # (Image.fromarray(ndimg)).show()
-            print(ndimg.ndim)
-            # ndimg = ndimg[360:440,700:820,:] #slice to specific region I want
-            (Image.fromarray(ndimg)).show()
-            ndimgB, ndimgG, ndimgR = Split_channels(ndimg)
-            # (Image.fromarray(ndimgB)).show()
-            # (Image.fromarray(ndimgG)).show()
-            # (Image.fromarray(ndimgR)).show()
+            ndimg = ndimg[250:300,235:290,:] #slice to specific region I want
+            # ndimgB, ndimgG, ndimgR = Split_channels(ndimg)
+            average_values.append(Average(ndimg))
             ndimg = Grayscale(ndimg)
-            (Image.fromarray(ndimg)).show()
-            # ndimg = Average(ndimg)
-            # (Image.fromarray(ndimg)).show()
+        timestamps.append(image.rsplit("_", 1))
+    for extra in timestamps:
+        del(extra[0])
+    timestamps = Flatten(timestamps)
+    for time in timestamps:
+        time = time[0:-4]
+    print(timestamps)
+    print(average_values)
+    (Image.fromarray(ndimg)).show()
+    pg.plot(average_values, symbol = None)
 Process()
