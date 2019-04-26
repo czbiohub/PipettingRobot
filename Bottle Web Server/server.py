@@ -7,7 +7,7 @@ import datetime
 import serial
 import time
 
-videocapturepath = os.path.realpath("./videocapture.py")
+videocapturepath = os.path.realpath(r"./Bottle Web Server/videocapture.py")
 commands = ['python', videocapturepath]
 global capturing
 capturing = False
