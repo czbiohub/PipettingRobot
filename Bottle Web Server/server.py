@@ -54,7 +54,7 @@ def tempdeck(commandinfo):
 	if commandinfo[0] == "1":
 		tempdeck = serial.Serial('/dev/ttyACM0', baudrate=115200, timeout = 0.5)
 	elif commandinfo[0] == "2":
-		tempdeck = serial.Serial('/dev/ttyACM0', baudrate=115200, timeout = 0.5)
+		tempdeck = serial.Serial('/dev/ttyACM1', baudrate=115200, timeout = 0.5)
 	else:
 		print("No valid device ID provided. Double check that attached devices are associated with the correct adresses")
 		return {"Device ID incorrect, no command was sent to tempdeck." : "jsonData"}
@@ -97,7 +97,7 @@ def tempdeck(commandinfo):
 		return returnmsg
 	else:
 		tempdeck.close()
-		returnmsg = None
+		returnmsg = "Set temperature target of tempdeck " + str(commandinfo[0])
 		return returnmsg
 
 run(host='0.0.0.0', port = 8080, debug=True) #0.0.0.0 = Listen to all interfaces
