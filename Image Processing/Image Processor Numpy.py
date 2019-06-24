@@ -6,6 +6,9 @@ import pyqtgraph as pg
 import easygui
 import numpy as np
 import cv2
+
+from roipoly import RoiPoly
+import matplotlib.pyplot as plt
 uin = str
 data = []
 datasets = []
@@ -14,8 +17,59 @@ names = []
 
 # Exporting image using PyQTGraph interactive window not working? This is a possible cause and fix: https://groups.google.com/forum/?nomobile=true#!topic/pyqtgraph/4jiAPUpLpF4
 
+def roipoly_process(): # Newer processing, allows for polygonal ROIs.
+    path = easygui.diropenbox()
+    try:
+        images = glob.glob(path + '/*.jpg') #Get full path of images in folder
+    except:
+        print("Not a valid path.")
+        Menu()
+    average_values = []
+    reference_average_values = []
+    channel_average_values = []
+    timestamps = []
+    with open((sorted(images)[-1]), 'rb') as file: # open image files sorted by name, starting at last image going forward to first, second etc.
+        imgfull = Image.open(file)
+        ndimg = np.array(imgfull)
+        ndimg = Grayscale(ndimg)
+        plt.title("left click: line segment         right click or double click: close channel region")
+        plt.imshow(ndimg, cmap = 'gray')
+        polyroi_channel = RoiPoly(color = 'r')
+        mask_channel = polyroi_channel.get_mask(ndimg)
+        plt.title("left click: line segment         right click or double click: close reference region")
+        plt.imshow(ndimg, cmap='gray')
+        polyroi_reference = RoiPoly(color = 'b')
+        mask_reference = polyroi_reference.get_mask(ndimg)
+    print("Working...")
+
+    for image in sorted(images): # For each image in sorted folder of images, open and convert to NumPy ndarray. User specifies region to analyze, as well as region to use as normalization region. The average value of a frame's region of interest is calculated as the difference between the 
+        with open(image, 'rb') as file:
+            imgfull = Image.open(file)
+            ndimg = np.array(imgfull)
+            ndimg = Grayscale(ndimg)
+
+            reference_value_average = np.mean(ndimg[mask_reference])
+            channel_value_average = np.mean(ndimg[mask_channel])
+            reference_average_values.append(reference_value_average)
+            channel_average_values.append(channel_value_average)
+
+        timestamps.append(image.rsplit("_", 1)) #Clean up timestamps 
+    reference_average_values = Normalize(reference_average_values)
+    channel_average_values = Normalize(channel_average_values)
+
+    for idx, _ in enumerate(channel_average_values):
+        average_values.append(channel_average_values[idx] - reference_average_values[idx])
+
+    for extra in timestamps:
+        del(extra[0])
+    timestamps = Flatten(timestamps)
+    for time in timestamps:
+        time = time[0:-4]
+    print("Added dataset " + path)
+    return(average_values, path)
+
 def Linreg():
-    for idx, (dataset, name) in enumerate(zip(datasets, names)):
+    for _, (dataset, name) in enumerate(zip(datasets, names)):
         x = np.arange(0, len(dataset))
         y = np.array(dataset)
         z = np.polyfit(x,y,1)
@@ -48,7 +102,7 @@ def Split_channels(imgarray): # Split an image into separate blue, green, red co
     imgR = imgarray[:,:,2]
     return imgB, imgG, imgR
 
-def Process():
+def Process(): # Old processing, limited to rectangular ROIs.
     path = easygui.diropenbox()
     try:
         images = glob.glob(path + '/*.jpg') #Get full path of images in folder
@@ -56,6 +110,8 @@ def Process():
         print("Not a valid path.")
         Menu()
     average_values = []
+    normal_average_values = []
+    channel_average_values = []
     timestamps = []
     with open((sorted(images)[-1]), 'rb') as file:
         imgfull = Image.open(file)
@@ -76,9 +132,13 @@ def Process():
             ndimg = Grayscale(ndimg)
             normal_average = Average(normalregion)
             channel_average = Average(ndimg)
-            average_values.append(channel_average - normal_average)
-
+            normal_average_values.append(normal_average)
+            channel_average_values.append(channel_average)
         timestamps.append(image.rsplit("_", 1)) #Clean up timestamps 
+    normal_average_values = Normalize(normal_average_values)
+    channel_average_values = Normalize(channel_average_values)
+    for idx, _ in enumerate(channel_average_values):
+        average_values.append(channel_average_values[idx] - normal_average_values[idx])
     for extra in timestamps:
         del(extra[0])
     timestamps = Flatten(timestamps)
@@ -108,7 +168,7 @@ What would you like to do?
 4. Quit
 """)
     if uin == "1":
-        data, name = Process()
+        data, name = roipoly_process()
         datasets.append(data)
         names.append(name)
         Menu()
